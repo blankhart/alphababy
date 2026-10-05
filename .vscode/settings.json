@@ -1,0 +1,9 @@
+{
+  "files.exclude": {
+    ".spago/": true,
+    "output": true,
+    "output-es": true,
+    ".psc-ide-port": true,
+    "app.js*": true
+  }
+}

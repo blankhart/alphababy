@@ -1,0 +1,39 @@
+package:
+  name: alphababy
+  dependencies:
+    - aff
+    - argonaut-codecs
+    - argonaut-core
+    - arrays
+    - canvas
+    - datetime
+    - effect
+    - either
+    - foldable-traversable
+    - foreign-object
+    - halogen
+    - halogen-subscriptions
+    - integers
+    - js-timers
+    - maybe
+    - nonempty
+    - now
+    - numbers
+    - ordered-collections
+    - prelude
+    - refs
+    - strings
+    - tuples
+    - web-dom
+    - web-events
+    - web-html
+    - web-storage
+    - web-uievents
+  test:
+    main: Test.Main
+    dependencies:
+      - assert
+workspace:
+  packageSet:
+    registry: 81.1.0
+  extraPackages: {}
