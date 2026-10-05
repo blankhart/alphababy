@@ -206,9 +206,9 @@ type ActivityOptions = { writing :: Boolean }
 
 -- | How often a skill that can be written gets a writing round.
 writingChance :: Number
-writingChance = 0.3
+writingChance = 0.6
 
--- | The next round: a party every fifth round, otherwise a skill chosen
+-- | The next round: a party every tenth round, otherwise a skill chosen
 -- | by `Progress.chooseSkill`, sometimes practised by writing it.
 planActivity :: ActivityOptions -> Array Skill -> Progress -> Maybe Theme -> Gen (Maybe Activity)
 planActivity options enabled progress lastTheme

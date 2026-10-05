@@ -211,7 +211,7 @@ recordParty sticker progress = progress
 
 -- | Every fifth round is a party round with nothing to get wrong.
 isPartyRound :: Progress -> Boolean
-isPartyRound progress = progress.rounds `mod` 5 == 4
+isPartyRound progress = progress.rounds `mod` 10 == 9
 
 markLearned :: Group -> Array Skill -> Progress -> Progress
 markLearned group skills progress = do

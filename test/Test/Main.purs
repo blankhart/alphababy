@@ -99,7 +99,7 @@ testProgress = do
     assert' "chooses an unlocked skill" (maybe' (\s -> Map.member s.id refreshed.skills) chosen)
     assert' "does not repeat the last skill" (maybe' (\s -> s.id /= capS) chosen)
   assert' "nothing to choose when nothing is enabled" (not (isJust (Random.evalGen (Progress.chooseSkill [] refreshed) (Random.mkSeed 1))))
-  assert' "every fifth round is a party" (map (\n -> Progress.isPartyRound (Progress.emptyProgress { rounds = n })) (Array.range 0 9) == [ false, false, false, false, true, false, false, false, false, true ])
+  assert' "every tenth round is a party" (map (\n -> Progress.isPartyRound (Progress.emptyProgress { rounds = n })) (Array.range 0 19) == map (\n -> n `mod` 10 == 9) (Array.range 0 19))
   where
   requiresOf id = Array.concatMap _.requires (Array.filter ((_ == id) <<< _.id) skills)
   maybe' f = case _ of
