@@ -36,17 +36,21 @@ to skip ahead, and resetting progress.
   specific spoken feedback ("it's facing the other way", "that looks like a
   dee", "you went off the path") and one more try; the second attempt ends
   the round either way.
+- Word-building rounds say and picture a short word. She taps its letters
+  in order to fill potion bottles and help a sick dragon, or fill train cars
+  and send the train on its way. These rounds are part of **Reading words**
+  and appear on rounds four and eight of each ten-round cycle.
 - Between rounds she gets a sticker and stars, and sees a panel of
   everything she's learning (pink) and has mastered (gold crowns).
 - About 230 items in 15 groups: big/little letters and matching pairs,
   digits, counting, numbers to 25, first sounds with pictures, letter
-  sounds, clapping syllables, sight words, CVC words, short vowel sounds,
+  sounds, clapping syllables, sight words, short phonetic words, short vowel sounds,
   letter teams (sh, ch, th, ph/f, ai/ay/a-e, …) and magic e.
 - At most four new items are in rotation. The next item (in phonics order:
   s a t p i n m d …) is introduced as items are mastered; a perfect first
   round counts as mastered so things she already knows aren't drilled.
   Mastered items come back for review, more often the longer it's been.
-  Every fifth round is a sparkle party with nothing to get wrong.
+  Every tenth round is a sparkle party with nothing to get wrong.
 - Progress and settings are saved in the browser (localStorage).
 
 ## Development

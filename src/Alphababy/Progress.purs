@@ -15,6 +15,7 @@ module Alphababy.Progress
   , roundScore
   , recordRound
   , recordWriting
+  , recordBuilding
   , canWrite
   , recordParty
   , markLearned
@@ -203,9 +204,15 @@ recordWriting result sticker progress = do
     }
 
 recordParty :: String -> Progress -> Progress
-recordParty sticker progress = progress
+recordParty = recordReward 1
+
+recordBuilding :: Boolean -> String -> Progress -> Progress
+recordBuilding firstTry = recordReward (if firstTry then 2 else 1)
+
+recordReward :: Int -> String -> Progress -> Progress
+recordReward stars sticker progress = progress
   { rounds = progress.rounds + 1
-  , stars = progress.stars + 1
+  , stars = progress.stars + stars
   , stickers = Array.snoc progress.stickers sticker
   }
 

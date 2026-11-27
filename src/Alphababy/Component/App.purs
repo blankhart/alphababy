@@ -11,6 +11,7 @@ import Alphababy.Capability.Speech (SpeechOptions, Voice)
 import Alphababy.Capability.Speech as Speech
 import Alphababy.Capability.Storage as Storage
 import Alphababy.Chimes as Chimes
+import Alphababy.Component.Building as Building
 import Alphababy.Component.Game as Game
 import Alphababy.Component.Hold as Hold
 import Alphababy.Component.Settings as SettingsComponent
@@ -69,12 +70,14 @@ data Action
   | Continue
   | GameOutput Game.Output
   | WritingOutput Writing.Output
+  | BuildingOutput Building.Output
   | OpenSettings
   | SettingsOutput SettingsComponent.Output
 
 type Slots =
   ( game :: H.Slot Game.Query Game.Output Int
   , writing :: H.Slot Writing.Query Writing.Output Int
+  , building :: H.Slot Building.Query Building.Output Int
   , settings :: H.Slot SettingsComponent.Query SettingsComponent.Output Unit
   , hold :: H.Slot Hold.Query Hold.Output Unit
   )
@@ -125,6 +128,15 @@ component =
         , greeting: if state.sessionRounds == 0 then greeting state else ""
         }
         WritingOutput
+    Playing (Build plan) ->
+      HH.slot (Proxy :: _ "building") state.round Building.component
+        { plan
+        , speech: speechOptions state
+        , audio: if state.settings.soundEffects then state.audio else Nothing
+        , seed: Random.seedToInt state.seed
+        , greeting: if state.sessionRounds == 0 then greeting state else ""
+        }
+        BuildingOutput
     Resting rest ->
       HH.div
         [ HP.class_ (H.ClassName "screen rest-screen") ]
@@ -214,6 +226,10 @@ component =
       Writing.Quit -> quit
       Writing.Finished result -> finishRound (Just result.skill) (Progress.recordWriting result)
 
+    BuildingOutput output -> case output of
+      Building.Quit -> quit
+      Building.Finished firstTry -> finishRound Nothing (Progress.recordBuilding firstTry)
+
     OpenSettings -> do
       liftEffect Speech.cancel
       H.modify_ _ { screen = Adjusting }
@@ -254,6 +270,7 @@ component =
           , lastTheme = case activity of
               Hunt plan -> Just plan.theme
               Draw _ -> state.lastTheme
+              Build _ -> state.lastTheme
           , round = state.round + 1
           }
 
