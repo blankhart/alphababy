@@ -15,6 +15,8 @@ module Alphababy.Content
   , letterName
   , spell
   , stickers
+  , BuildingWord
+  , buildingWords
   , WritingTask
   , WritingRival
   , writingTask
@@ -200,7 +202,7 @@ curriculum options =
     , Array.mapWithIndex letterSoundSkill letters
     , map syllableSkill [ 1, 2, 3 ]
     , Array.mapWithIndex sightWordSkill (sightWords <> customSightWords options.extraSightWords)
-    , Array.mapWithIndex wordSkill cvcWords
+    , Array.mapWithIndex wordSkill decodableWords
     , Array.mapWithIndex vowelSkill shortVowels
     , Array.mapWithIndex spellingSkill spellings
     , Array.mapWithIndex magicESkill magicEWords
@@ -681,6 +683,33 @@ sightWordSkill i (Tuple word lookAlikes) =
   , explain: \l -> "That says " <> l.spoken <> "."
   }
 
+type BuildingWord = { word :: String, picture :: String }
+
+buildingWords :: Array BuildingWord
+buildingWords =
+  [ { word: "cat", picture: "🐱" }
+  , { word: "dog", picture: "🐶" }
+  , { word: "pig", picture: "🐷" }
+  , { word: "hat", picture: "🎩" }
+  , { word: "bed", picture: "🛏️" }
+  , { word: "sun", picture: "☀️" }
+  , { word: "cup", picture: "☕" }
+  , { word: "bug", picture: "🐞" }
+  , { word: "pup", picture: "🐕" }
+  ] <> fourLetterBuildingWords
+
+fourLetterBuildingWords :: Array BuildingWord
+fourLetterBuildingWords =
+  [ { word: "frog", picture: "🐸" }
+  , { word: "flag", picture: "🚩" }
+  , { word: "crab", picture: "🦀" }
+  , { word: "drum", picture: "🥁" }
+  , { word: "tent", picture: "⛺" }
+  ]
+
+decodableWords :: Array String
+decodableWords = cvcWords <> map _.word fourLetterBuildingWords
+
 cvcWords :: Array String
 cvcWords =
   [ "cat"
@@ -745,7 +774,7 @@ wordSkill i word =
   , reminder: "Find the word " <> word <> "!"
   , finale: spell word <> ". " <> word <> "!"
   , targets: nea (vowelWord word) []
-  , confusables: map vowelWord (Array.filter (differsByOne word) cvcWords)
+  , confusables: map vowelWord (Array.filter (differsByOne word) decodableWords)
   , avoid: []
   , requires: map (\c -> SkillId ("snd:" <> CodeUnits.singleton c)) (Array.nub (CodeUnits.toCharArray word))
   , cheer: \l -> l.spoken <> "!"

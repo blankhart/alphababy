@@ -10,6 +10,9 @@ module Alphababy.Round
   , WritingMode(..)
   , WritingPlan
   , planWriting
+  , BuildingTheme(..)
+  , BuildingPlan
+  , planBuilding
   , Activity(..)
   , ActivityOptions
   , planActivity
@@ -20,7 +23,7 @@ module Alphababy.Round
 
 import Prelude
 
-import Alphababy.Content (Face(..), Label, Skill, WritingRival, WritingTask)
+import Alphababy.Content (Face(..), Label, Skill, SkillId(..), WritingRival, WritingTask)
 import Alphababy.Content as Content
 import Alphababy.Progress (Progress)
 import Alphababy.Progress as Progress
@@ -33,7 +36,8 @@ import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe)
-import Data.Traversable (sequence, traverse)
+import Data.String.CodeUnits as CodeUnits
+import Data.Traversable (for, sequence, traverse)
 import Data.Tuple (Tuple(..))
 
 -- | How the balls look and move.
@@ -198,9 +202,51 @@ planWriting progress skill = do
           Freehand -> Content.writePrompt showModel task
       }
 
+data BuildingTheme
+  = Potions
+  | Train
+
+derive instance Eq BuildingTheme
+
+type BuildingPlan =
+  { theme :: BuildingTheme
+  , word :: String
+  , picture :: String
+  , letters :: Array String
+  , tiles :: Array String
+  , prompt :: String
+  }
+
+planBuilding :: BuildingTheme -> Array Skill -> Gen (Maybe BuildingPlan)
+planBuilding theme enabled = do
+  let
+    enabledIds = map _.id enabled
+    words = Array.filter (\entry -> Array.elem (SkillId ("word:" <> entry.word)) enabledIds) Content.buildingWords
+    preferredLength = case theme of
+      Potions -> 3
+      Train -> 4
+    preferred = Array.filter (\entry -> CodeUnits.length entry.word == preferredLength) words
+    pool = if Array.null preferred then words else preferred
+  for (NonEmptyArray.fromArray pool) \choices -> do
+    { word, picture } <- Random.pick choices
+    let
+      letters = map CodeUnits.singleton (CodeUnits.toCharArray word)
+      needed = Array.nub letters
+      -- Use unambiguous consonants. Alternate spellings of the same sound
+      -- (c/k/q, s/c, g/j, etc.) and dialect-sensitive vowels stay out of the tray.
+      candidates = [ "b", "d", "f", "l", "m", "n", "r", "t", "w" ]
+      distractors = Array.difference candidates needed
+      job = case theme of
+        Potions -> "Fill the potion bottles to help the dragon. "
+        Train -> "Fill the cars to send the train on its way. "
+    extras <- map (Array.take 2) (Random.shuffle distractors)
+    tiles <- Random.shuffle (needed <> extras)
+    pure { theme, word, picture, letters, tiles, prompt: job <> "Tap the letters to spell " <> word <> ". " <> word <> "." }
+
 data Activity
   = Hunt Plan
   | Draw WritingPlan
+  | Build BuildingPlan
 
 type ActivityOptions = { writing :: Boolean }
 
@@ -208,14 +254,22 @@ type ActivityOptions = { writing :: Boolean }
 writingChance :: Number
 writingChance = 0.6
 
--- | The next round: a party every tenth round, otherwise a skill chosen
--- | by `Progress.chooseSkill`, sometimes practised by writing it.
+-- | The next round: word building on rounds four and eight of each block,
+-- | a party every tenth round, and adaptive practice in the other rounds.
 planActivity :: ActivityOptions -> Array Skill -> Progress -> Maybe Theme -> Gen (Maybe Activity)
 planActivity options enabled progress lastTheme
   | Progress.isPartyRound progress && not (Array.null enabled) = map (Just <<< Hunt) (planParty lastTheme)
-  | otherwise = do
-      skill <- Progress.chooseSkill enabled progress
-      write <- Random.chance writingChance
-      flip traverse skill \s -> case planWriting progress s of
-        Just plan | options.writing && write -> pure (Draw plan)
-        _ -> map Hunt (planLesson enabled progress lastTheme s)
+  | otherwise =
+      case progress.rounds `mod` 10 of
+        3 -> buildOrPractice Potions
+        7 -> buildOrPractice Train
+        _ -> practice
+      where
+      buildOrPractice theme = planBuilding theme enabled >>= maybe practice (pure <<< Just <<< Build)
+
+      practice = do
+        skill <- Progress.chooseSkill enabled progress
+        write <- Random.chance writingChance
+        flip traverse skill \s -> case planWriting progress s of
+          Just plan | options.writing && write -> pure (Draw plan)
+          _ -> map Hunt (planLesson enabled progress lastTheme s)

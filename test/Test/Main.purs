@@ -9,7 +9,7 @@ import Alphababy.Handwriting as Handwriting
 import Alphababy.Progress (Progress)
 import Alphababy.Progress as Progress
 import Alphababy.Random as Random
-import Alphababy.Round (Activity(..), Plan, RoundKind(..), Theme(..), WritingMode(..))
+import Alphababy.Round (Activity(..), BuildingTheme(..), Plan, RoundKind(..), Theme(..), WritingMode(..))
 import Alphababy.Round as Round
 import Alphababy.Settings as Settings
 import Alphababy.Settings.Codec as Codec
@@ -50,6 +50,7 @@ main = do
   testWorld
   testHandwriting
   testWriting
+  testBuilding
   testCodec
   log "All tests passed."
 
@@ -324,3 +325,47 @@ testWriting = do
       _ -> false
   assert' "some rounds are writing rounds" (draws (activities true) > 5)
   assert' "no writing rounds when they are turned off" (draws (activities false) == 0)
+
+testBuilding :: Effect Unit
+testBuilding = do
+  let
+    seed = Random.mkSeed 37
+    onlyWord word = Array.filter ((_ == SkillId ("word:" <> word)) <<< _.id) skills
+    activity available rounds = Random.evalGen
+      (Round.planActivity { writing: true } available (Progress.refreshUnlocks available (Progress.emptyProgress { rounds = rounds })) Nothing)
+      seed
+    theme = case _ of
+      Just (Build plan) -> Just plan.theme
+      _ -> Nothing
+    tray = Random.evalGen (Round.planBuilding Potions (onlyWord "pup")) seed
+  assert' "round four is potions" (theme (activity skills 3) == Just Potions)
+  assert' "round eight is the train" (theme (activity skills 7) == Just Train)
+  assert' "word building does not replace the sparkle party" case activity skills 9 of
+    Just (Hunt { kind: Party }) -> true
+    _ -> false
+  assert' "disabling Reading words skips word building"
+    (theme (activity (Array.filter ((_ /= Words) <<< _.group) skills) 3) == Nothing)
+  assert' "one tile can supply both copies of a repeated letter" case tray of
+    Just plan -> plan.letters == [ "p", "u", "p" ] && Array.length (Array.filter (_ == "p") plan.tiles) == 1
+    Nothing -> false
+  for_ Content.buildingWords \{ word } ->
+    for_ (Array.range 1 30) \n -> do
+      let
+        plan = Random.evalGen (Round.planBuilding Train (onlyWord word)) (Random.mkSeed n)
+      assert' ("the tray for " <> word <> " has all letters and only unambiguous extras") case plan of
+        Just { letters, tiles } ->
+          let
+            extras = Array.difference tiles letters
+          in
+            Array.length (Array.nub tiles) == Array.length tiles
+              && all (flip Array.elem tiles) letters
+              && Array.length extras == 2
+              && not (Array.any (flip Array.elem extras) [ "a", "c", "e", "g", "i", "j", "k", "o", "q", "s", "u", "y", "z" ])
+        Nothing -> false
+  let
+    before = Progress.refreshUnlocks skills Progress.emptyProgress
+    after = Progress.recordBuilding true "⭐" before
+    withHint = Progress.recordBuilding false "⭐" before
+  assert' "building rewards a sticker and two stars on the first try"
+    (after.rounds == 1 && after.stars == 2 && after.stickers == [ "⭐" ] && after.skills == before.skills)
+  assert' "a retry or hint still earns a star" (withHint.stars == 1)
